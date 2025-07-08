@@ -1,0 +1,49 @@
+name: Deploy Detection Rules to Elastic
+
+on:
+  push:
+    branches:
+      - main # Or whatever your main branch is called
+    paths:
+      - 'rules/**.toml' # Only run when a rule file changes
+
+jobs:
+  deploy-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find changed rule files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: rules/**.toml
+
+      - name: Deploy Changed Rules via API
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          KIBANA_URL: ${{ secrets.KIBANA_URL }}
+          ELASTIC_API_KEY_ENCODED: ${{ secrets.ELASTIC_API_KEY_ENCODED }}
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "Processing changed rule file: $file"
+
+            # Use yq to parse TOML and get the rule_id
+            # Install yq - a lightweight and portable command-line YAML, JSON, and XML processor
+            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+
+            RULE_ID=$(yq -r '.rule.rule_id' "$file")
+
+            # Convert the TOML rule to a JSON payload
+            JSON_PAYLOAD=$(yq -o=json '.' "$file")
+
+            echo "Deploying rule with rule_id: $RULE_ID"
+
+            # Make the API call to create/update the rule
+            curl -X PUT "${KIBANA_URL}/api/detection_engine/rules?rule_id=${RULE_ID}" \
+              -H "kbn-xsrf: true" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: ApiKey ${ELASTIC_API_KEY_ENCODED}" \
+              --data-binary "$JSON_PAYLOAD"
+          done
