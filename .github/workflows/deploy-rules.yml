@@ -16,17 +16,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Find changed rule files
+      - name: Find Changed Rule Files using Git Diff
         id: changed-files
-        uses: tj-actions/changed-files@v44
-        with:
-          files: rules/**.toml
-
-      # ADD THIS NEW STEP FOR DEBUGGING
-      - name: DEBUG - List changed files
         run: |
-          echo "All changed files detected by the action: ${{ steps.changed-files.outputs.all_changed_files }}"
-          echo "Was any file changed? (true/false): ${{ steps.changed-files.outputs.any_changed }}"
+          # Get the list of all changed files between the last 2 commits
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+
+          # Filter for only the .toml files inside the 'rules' directory
+          MATCHING_FILES=$(echo "$CHANGED_FILES" | grep -E '^rules/.*\.toml$' || true)
+
+          if [[ -n "$MATCHING_FILES" ]]; then
+            echo "Found changed rule files:"
+            echo "$MATCHING_FILES"
+            echo "any_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No rule files were changed."
+            echo "any_changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Deploy Changed Rules via API
         if: steps.changed-files.outputs.any_changed == 'true'
