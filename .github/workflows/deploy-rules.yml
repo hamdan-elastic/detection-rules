@@ -22,6 +22,12 @@ jobs:
         with:
           files: rules/**.toml
 
+      # ADD THIS NEW STEP FOR DEBUGGING
+      - name: DEBUG - List changed files
+        run: |
+          echo "All changed files detected by the action: ${{ steps.changed-files.outputs.all_changed_files }}"
+          echo "Was any file changed? (true/false): ${{ steps.changed-files.outputs.any_changed }}"
+
       - name: Deploy Changed Rules via API
         if: steps.changed-files.outputs.any_changed == 'true'
         env:
