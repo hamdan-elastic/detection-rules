@@ -5,7 +5,7 @@ on:
     branches:
       - main # Or whatever your main branch is called
     paths:
-      - 'rules/**.toml' # Only run when a rule file changes
+      - '/rules/integrations/aws/*.toml' # Only run when a rule file changes
 
 jobs:
   deploy-rules:
