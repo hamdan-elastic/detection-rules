@@ -5,7 +5,7 @@ maturity = "production"
 updated_date = "2025/01/15"
 
 [rule]
-author = ["Elastic"]
+author = ["Elastic","Hamdan"]
 description = """
 This rule detects the first time a principal calls AWS Cloudwatch `CreateStack` or `CreateStackSet` API. Cloudformation
 is used to create a single collection of cloud resources called a stack, via a defined template file. An attacker with
