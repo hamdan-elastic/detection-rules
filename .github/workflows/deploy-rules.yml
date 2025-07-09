@@ -34,30 +34,49 @@ jobs:
             echo "any_changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Deploy Changed Rules via API
+       - name: Deploy Changed Rules via API
         if: steps.changed-files.outputs.any_changed == 'true'
         env:
           KIBANA_URL: ${{ secrets.KIBANA_URL }}
           ELASTIC_API_KEY_ENCODED: ${{ secrets.ELASTIC_API_KEY_ENCODED }}
         run: |
+          # Install jq, a lightweight command-line JSON processor
+          sudo apt-get install -y jq
+
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "Processing changed rule file: $file"
+            echo "----------------------------------------------------"
+            echo "Preparing to deploy rule: $file"
 
-            # Use yq to parse TOML and get the rule_id
-            # Install yq - a lightweight and portable command-line YAML, JSON, and XML processor
-            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
-
+            # Use yq to parse TOML and get the rule_id and rule_name
             RULE_ID=$(yq -r '.rule.rule_id' "$file")
+            RULE_NAME=$(yq -r '.rule.name' "$file")
 
             # Convert the TOML rule to a JSON payload
             JSON_PAYLOAD=$(yq -o=json '.' "$file")
 
-            echo "Deploying rule with rule_id: $RULE_ID"
+            echo "Deploying rule_id: '$RULE_ID' with name: '$RULE_NAME'"
 
-            # Make the API call to create/update the rule
-            curl -X PUT "${KIBANA_URL}/api/detection_engine/rules?rule_id=${RULE_ID}" \
+            # Make the API call and store the HTTP status code and response body
+            API_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X PUT "${KIBANA_URL}/api/detection_engine/rules?rule_id=${RULE_ID}" \
               -H "kbn-xsrf: true" \
               -H "Content-Type: application/json" \
               -H "Authorization: ApiKey ${ELASTIC_API_KEY_ENCODED}" \
-              --data-binary "$JSON_PAYLOAD"
+              --data-binary "$JSON_PAYLOAD")
+
+            # Extract the body and status code from the combined response
+            API_BODY=$(echo "$API_RESPONSE" | sed '$d')
+            HTTP_STATUS=$(echo "$API_RESPONSE" | tail -n 1 | cut -d: -f2)
+
+            # Check the HTTP Status and print the result
+            if [[ "$HTTP_STATUS" -ge 200 && "$HTTP_STATUS" -lt 300 ]]; then
+              echo "✅ SUCCESS (HTTP $HTTP_STATUS)"
+              echo "Elastic API Response:"
+              echo "$API_BODY" | jq '.' # Pretty-print the JSON response
+            else
+              echo "❌ FAILED (HTTP $HTTP_STATUS)"
+              echo "Elastic API Error Response:"
+              echo "$API_BODY" | jq '.' # Pretty-print the error JSON
+              exit 1 # Fail the workflow step
+            fi
+            echo "----------------------------------------------------"
           done
