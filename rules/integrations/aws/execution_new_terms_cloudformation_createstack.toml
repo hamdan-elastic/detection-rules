@@ -5,7 +5,7 @@ maturity = "production"
 updated_date = "2025/01/15"
 
 [rule]
-author = ["Elastic","Hamdan"]
+author = ["Elastic"]
 description = """
 This rule detects the first time a principal calls AWS Cloudwatch `CreateStack` or `CreateStackSet` API. Cloudformation
 is used to create a single collection of cloud resources called a stack, via a defined template file. An attacker with
@@ -33,7 +33,7 @@ references = [
 ]
 risk_score = 47
 rule_id = "0415258b-a7b2-48a6-891a-3367cd9d4d31"
-severity = "medium"
+severity = "high"
 tags = [
     "Domain: Cloud",
     "Data Source: AWS",
