@@ -24,7 +24,7 @@ from = "now-6m"
 index = ["filebeat-*", "logs-aws.cloudtrail-*"]
 language = "kuery"
 license = "Elastic License v2"
-name = "First Time AWS Cloudformation Stack Creation by User - Testing DaC"
+name = "First Time AWS Cloudformation Stack Creation by User - Testing Dac"
 references = [
     "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-creating-stack.html/",
     "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html/",
